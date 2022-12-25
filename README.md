@@ -8,6 +8,8 @@ This Node.js script generates a `docker-compose.yml` and `Dockerfile` file for a
 - Node.js
 - npm
 - yarn
+- git
+- svn
 
 ## Prerequisites
 
