@@ -122,7 +122,7 @@ askQuestions([
         fs.mkdirSync(outputLocation, { recursive: true })
     }
 
-    fs.readFile('template.Dockerfile', 'utf8', (err, template) => {
+    fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
         if (err) {
             console.error(err)
             return
@@ -164,7 +164,7 @@ askQuestions([
         console.log(`Successfully created Dockerfile file at ${outputLocation}`)
     })
 
-    fs.readFile('template-docker-compose.yml', 'utf8', (err, template) => {
+    fs.readFile('templates/docker-compose.yml', 'utf8', (err, template) => {
         if (err) {
             console.error(err)
             return
