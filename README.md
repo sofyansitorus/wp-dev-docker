@@ -49,6 +49,44 @@ docker-compose up
 
 This will build and start the containers specified in the `docker-compose.yml` file. You can then access the WordPress site at http://localhost.
 
+## Advanced Usage
+
+#### Custom Domain
+
+You can use a custom domain if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
+
+1. `Please enter the environments for the docker service, separating multiple environments with a semicolon:`
+
+```bash
+VIRTUAL_HOST=yourdomain.tld
+```
+
+2. `Please enter the name of the network for the container:`
+
+```bash
+proxy
+```
+
+To use a custom domain, you will need to set up your DNS and install and activate the [acme-companion](https://github.com/nginx-proxy/acme-companion) docker. After completing these steps, you can access the WordPress site at http://yourdomain.tld.
+
+#### Custom Domain & SSL
+
+You can use a custom domain and SSL if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
+
+1. `Please enter the environments for the docker service, separating multiple environments with a semicolon:`
+
+```bash
+VIRTUAL_HOST=yourdomain.tld;LETSENCRYPT_HOST=yourdomain.tld;LETSENCRYPT_EMAIL=mail@yourdomain.tld
+```
+
+2. `Please enter the name of the network for the container:`
+
+```bash
+proxy
+```
+
+To use a custom domain and SSL, you will need to set up your DNS and install and activate the [acme-companion](https://github.com/nginx-proxy/acme-companion) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
+
 ## Customization
 
 You can customize the templates for each service in the `templates` directory. The script will use these templates as a starting point for generating the `docker-compose.yml` and `Dockerfile` file.
