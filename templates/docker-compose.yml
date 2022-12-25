@@ -1,0 +1,56 @@
+version: '3'
+services:
+  db_{{containerId}}_test:
+    image: mariadb:10.6.4-focal
+    command: '--default-authentication-plugin=mysql_native_password'
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=wordpress
+      - MYSQL_DATABASE=wordpress-test
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+    volumes:
+      - var_lib_mysql_test:/var/lib/mysql
+
+  db_{{containerId}}:
+    image: mariadb:10.6.4-focal
+    command: '--default-authentication-plugin=mysql_native_password'
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=wordpress
+      - MYSQL_DATABASE=wordpress
+      - MYSQL_USER=wordpress
+      - MYSQL_PASSWORD=wordpress
+    volumes:
+      - var_lib_mysql:/var/lib/mysql
+
+  wp_{{containerId}}:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - db_{{containerId}}
+    environment:
+      - WORDPRESS_DB_HOST=db_{{containerId}}
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=WORDPRESS_DB_NAME
+    volumes:
+      - ~/.ssh:/home/{{containerUser}}/.ssh:ro
+      - var_www_html:/var/www/html
+
+volumes:
+  var_www_html:
+    labels:
+      ch.example.label: "var_www_html"
+  var_lib_mysql:
+    labels:
+      ch.example.label: "var_lib_mysql"
+  var_lib_mysql_test:
+    labels:
+      ch.example.label: "var_lib_mysql_test"
+
+networks:
+  default:
+    name: {{network}}
