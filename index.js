@@ -9,7 +9,7 @@ const askQuestion = (rl, question) => {
     })
 }
 
-const askQuestions = function (questions) {
+const askQuestions = (questions) => {
     return new Promise(async (resolve, reject) => {
         const rl = readline.createInterface({
             input: process.stdin,
@@ -71,6 +71,7 @@ askQuestions([
     {
         id: 'containerUser',
         text: 'Please enter the user for the container:',
+        defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
@@ -82,7 +83,7 @@ askQuestions([
         id: 'generateSSHKey',
         text: 'Do you want to generate an SSH key in the container?',
         defaultAnswer: 'yes',
-        isSkip: function (answers) {
+        isSkip: (answers) => {
             return 'yes' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer
         }
     },
