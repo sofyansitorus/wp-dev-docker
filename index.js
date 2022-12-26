@@ -1,6 +1,14 @@
 const fs = require('fs')
 const readline = require('readline')
 
+const validateEmail = (email) => {
+    return String(email)
+        .toLowerCase()
+        .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        )
+}
+
 const askQuestion = (rl, question) => {
     return new Promise(resolve => {
         rl.question(question, (answer) => {
@@ -19,13 +27,13 @@ const askQuestions = (questions) => {
         const answers = []
 
         for (let i = 0; i < questions.length; i++) {
-            const { id, text, defaultAnswer, isRequired, isSkip } = questions[i];
+            const { id, text, defaultAnswer, isRequired, isSkip } = questions[i]
 
             if (isSkip && true === isSkip.call(null, answers)) {
                 continue
             }
 
-            let question = isRequired ? `(*) ${text}` : text;
+            let question = isRequired ? `(*) ${text}` : text
 
             if (defaultAnswer) {
                 question += ` (${defaultAnswer})`
@@ -45,16 +53,28 @@ const askQuestions = (questions) => {
 
         rl.close()
 
-        const error = questions.find(({ id, isSkip, isRequired }) => {
+        let errorMessage
+
+        questions.forEach(({ id, isSkip, isRequired, validation }) => {
             if (isSkip && true === isSkip.call(null, answers)) {
+                return
+            }
+
+            const answer = answers.find(answer => answer.id === id)?.answer ?? ''
+
+            if ('' !== answer && validation && !validation.call(null, answer, answers)) {
+                errorMessage = `ERROR: The ${id} input is invalid.`
                 return false
             }
 
-            return !!(isRequired && ('' === answers.find(answer => answer.id === id)?.answer ?? ''))
+            if ('' === answer && isRequired) {
+                errorMessage = `ERROR: The ${id} input cannot be left blank. Please enter a value.`
+                return false
+            }
         })
 
-        if (error) {
-            reject(`ERROR: The ${error.id} field cannot be left blank. Please enter a value.`);
+        if (errorMessage) {
+            reject(errorMessage)
         }
 
         resolve(answers)
@@ -115,6 +135,7 @@ askQuestions([
     {
         id: 'gitUserEmail',
         text: 'Please enter your Git user email:',
+        validation: validateEmail,
     },
     {
         id: 'outputLocation',
@@ -226,5 +247,5 @@ askQuestions([
         })
     })
     .catch((error) => {
-        console.error(error);
+        console.error(error)
     })
