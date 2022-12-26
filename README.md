@@ -87,6 +87,16 @@ proxy
 
 To use a custom domain and SSL, you will need to set up your DNS and install and activate the [acme-companion](https://github.com/nginx-proxy/acme-companion) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
 
+#### Custom Volume
+
+You can create custom volumes to be mounted within the container. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
+
+1. `Please enter the volumes for the docker service, separating multiple volumes with a semicolon:`
+
+```bash
+./woongkir:/var/www/html/wp-content/plugins/woongkir;./Divi:/var/www/html/wp-content/themes/Divi
+```
+
 ## Customization
 
 You can customize the templates for each service in the `templates` directory. The script will use these templates as a starting point for generating the `docker-compose.yml` and `Dockerfile` file.
