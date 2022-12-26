@@ -67,7 +67,7 @@ VIRTUAL_HOST=yourdomain.tld
 proxy
 ```
 
-To use a custom domain, you will need to set up your DNS and install and activate the [acme-companion](https://github.com/nginx-proxy/acme-companion) docker. After completing these steps, you can access the WordPress site at http://yourdomain.tld.
+To use a custom domain, you will need to set up your DNS and install and activate the [NGINX Proxy Automation](https://github.com/evertramos/nginx-proxy-automation) docker. After completing these steps, you can access the WordPress site at http://yourdomain.tld.
 
 #### Custom Domain & SSL
 
@@ -85,7 +85,7 @@ VIRTUAL_HOST=yourdomain.tld;LETSENCRYPT_HOST=yourdomain.tld;LETSENCRYPT_EMAIL=ma
 proxy
 ```
 
-To use a custom domain and SSL, you will need to set up your DNS and install and activate the [acme-companion](https://github.com/nginx-proxy/acme-companion) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
+To use a custom domain and SSL, you will need to set up your DNS and install and activate the [NGINX Proxy Automation](https://github.com/evertramos/nginx-proxy-automation) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
 
 #### Custom Volume
 
