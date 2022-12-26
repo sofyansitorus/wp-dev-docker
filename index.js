@@ -1,6 +1,111 @@
 const fs = require('fs')
 const readline = require('readline')
 
+const generateDockerFile = ({
+    containerUser,
+    generateSSHKey,
+    gitUserEmail,
+    gitUserName,
+    image,
+    outputLocation,
+    workDir,
+}) => {
+    fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
+        if (err) {
+            console.error(err)
+            return
+        }
+
+        const output = template
+            .split('\n')
+            .filter(line => {
+                if (-1 !== line.indexOf('ssh-keygen')) {
+                    return 'yes' === generateSSHKey
+                }
+
+                if (-1 !== line.indexOf('{{gitUserName}}')) {
+                    return !!gitUserName
+                }
+
+                if (-1 !== line.indexOf('{{gitUserEmail}}')) {
+                    return !!gitUserEmail
+                }
+
+                if (-1 !== line.indexOf('WORKDIR')) {
+                    return !!workDir
+                }
+
+                return true
+            })
+            .map(line => {
+                return line
+                    .replace(new RegExp('{{image}}', 'g'), image)
+                    .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
+                    .replace(new RegExp('{{gitUserName}}', 'g'), gitUserName)
+                    .replace(new RegExp('{{gitUserEmail}}', 'g'), gitUserEmail)
+                    .replace(new RegExp('{{workDir}}', 'g'), workDir)
+            })
+            .join('\n')
+
+        fs.writeFileSync(`${outputLocation}/Dockerfile`, output)
+
+        console.log(`Successfully created Dockerfile file at ${outputLocation}`)
+    })
+}
+
+const generateDockerCompose = ({
+    containerId,
+    containerUser,
+    environments,
+    network,
+    outputLocation,
+    shareSSHKey,
+    volumes,
+}) => {
+    fs.readFile('templates/docker-compose.yml', 'utf8', (err, template) => {
+        if (err) {
+            console.error(err)
+            return
+        }
+
+        const output = template
+            .split('\n')
+            .filter(line => {
+                if (-1 !== line.indexOf('~/.ssh')) {
+                    return 'yes' === shareSSHKey
+                }
+
+                if (-1 !== line.indexOf('name: {{network}}')) {
+                    return !!network
+                }
+
+                return true
+            })
+            .map(line => {
+                return line
+                    .replace(new RegExp('{{containerId}}', 'g'), containerId)
+                    .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
+                    .replace(new RegExp('{{network}}', 'g'), network)
+            })
+            .reduce((accumulator, currentValue) => {
+                if (environments && -1 !== currentValue.indexOf('WORDPRESS_DB_NAME=WORDPRESS_DB_NAME')) {
+                    return accumulator.concat(currentValue, [...environments.split(';').map(environment => `      - ${environment}`)])
+                }
+
+                if (volumes && -1 !== currentValue.indexOf('var_www_html:/var/www/html')) {
+                    return accumulator.concat(currentValue, [...volumes.split(';').map(volume => `      - ${volume}`)])
+                }
+
+                return accumulator.concat(currentValue)
+            }, [])
+            .join('\n')
+
+        fs.writeFileSync(`${outputLocation}/docker-compose.yml`, output)
+
+        console.log(`Successfully created docker-compose.yml file at ${outputLocation}`)
+    })
+}
+
 const validateEmail = (email) => {
     return String(email)
         .toLowerCase()
@@ -29,7 +134,7 @@ const askQuestions = (questions) => {
         for (let i = 0; i < questions.length; i++) {
             const { id, text, defaultAnswer, isRequired, isSkip } = questions[i]
 
-            if (isSkip && true === isSkip.call(null, answers)) {
+            if (isSkip && isSkip.call(null, answers)) {
                 continue
             }
 
@@ -56,7 +161,7 @@ const askQuestions = (questions) => {
         let errorMessage
 
         questions.forEach(({ id, isSkip, isRequired, validation }) => {
-            if (isSkip && true === isSkip.call(null, answers)) {
+            if (isSkip && isSkip.call(null, answers)) {
                 return
             }
 
@@ -161,89 +266,24 @@ askQuestions([
             fs.mkdirSync(outputLocation, { recursive: true })
         }
 
-        fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
-            if (err) {
-                console.error(err)
-                return
-            }
-
-            const output = template
-                .split('\n')
-                .filter(line => {
-                    if (-1 !== line.indexOf('ssh-keygen')) {
-                        return 'yes' === generateSSHKey
-                    }
-
-                    if (-1 !== line.indexOf('{{gitUserName}}')) {
-                        return !!gitUserName
-                    }
-
-                    if (-1 !== line.indexOf('{{gitUserEmail}}')) {
-                        return !!gitUserEmail
-                    }
-
-                    if (-1 !== line.indexOf('WORKDIR')) {
-                        return !!workDir
-                    }
-
-                    return true
-                })
-                .map(line => {
-                    return line
-                        .replace(new RegExp('{{image}}', 'g'), image)
-                        .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
-                        .replace(new RegExp('{{gitUserName}}', 'g'), gitUserName)
-                        .replace(new RegExp('{{gitUserEmail}}', 'g'), gitUserEmail)
-                        .replace(new RegExp('{{workDir}}', 'g'), workDir)
-                })
-                .join('\n')
-
-            fs.writeFileSync(`${outputLocation}/Dockerfile`, output)
-
-            console.log(`Successfully created Dockerfile file at ${outputLocation}`)
+        generateDockerFile({
+            containerUser,
+            generateSSHKey,
+            gitUserEmail,
+            gitUserName,
+            image,
+            outputLocation,
+            workDir,
         })
 
-        fs.readFile('templates/docker-compose.yml', 'utf8', (err, template) => {
-            if (err) {
-                console.error(err)
-                return
-            }
-
-            const output = template
-                .split('\n')
-                .filter(line => {
-                    if (-1 !== line.indexOf('~/.ssh')) {
-                        return 'yes' === shareSSHKey
-                    }
-
-                    if (-1 !== line.indexOf('name: {{network}}')) {
-                        return !!network
-                    }
-
-                    return true
-                })
-                .map(line => {
-                    return line
-                        .replace(new RegExp('{{containerId}}', 'g'), containerId)
-                        .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
-                        .replace(new RegExp('{{network}}', 'g'), network)
-                })
-                .reduce((accumulator, currentValue) => {
-                    if (environments && -1 !== currentValue.indexOf('WORDPRESS_DB_NAME=WORDPRESS_DB_NAME')) {
-                        return accumulator.concat(currentValue, [...environments.split(';').map(environment => `      - ${environment}`)])
-                    }
-
-                    if (volumes && -1 !== currentValue.indexOf('var_www_html:/var/www/html')) {
-                        return accumulator.concat(currentValue, [...volumes.split(';').map(volume => `      - ${volume}`)])
-                    }
-
-                    return accumulator.concat(currentValue)
-                }, [])
-                .join('\n')
-
-            fs.writeFileSync(`${outputLocation}/docker-compose.yml`, output)
-
-            console.log(`Successfully created docker-compose.yml file at ${outputLocation}`)
+        generateDockerCompose({
+            containerId,
+            containerUser,
+            environments,
+            network,
+            outputLocation,
+            shareSSHKey,
+            volumes,
         })
     })
     .catch((error) => {
