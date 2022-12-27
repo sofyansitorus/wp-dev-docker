@@ -55,7 +55,7 @@ This will build and start the containers specified in the `docker-compose.yml` f
 
 You can use a custom domain if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
 
-1. `Please enter the environments for the docker service, separating multiple environments with a semicolon:`
+1. `Please enter an environment value for the docker service:`
 
 ```bash
 VIRTUAL_HOST=yourdomain.tld
@@ -73,10 +73,18 @@ To use a custom domain, you will need to set up your DNS and install and activat
 
 You can use a custom domain and SSL if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
 
-1. `Please enter the environments for the docker service, separating multiple environments with a semicolon:`
+1. `Please enter an environment value for the docker service:`
 
 ```bash
-VIRTUAL_HOST=yourdomain.tld;LETSENCRYPT_HOST=yourdomain.tld;LETSENCRYPT_EMAIL=mail@yourdomain.tld
+VIRTUAL_HOST=yourdomain.tld
+```
+
+```bash
+LETSENCRYPT_HOST=yourdomain.tld
+```
+
+```bash
+LETSENCRYPT_EMAIL=mail@yourdomain.tld
 ```
 
 2. `Please enter the name of the network for the container:`
@@ -87,14 +95,18 @@ proxy
 
 To use a custom domain and SSL, you will need to set up your DNS and install and activate the [NGINX Proxy Automation](https://github.com/evertramos/nginx-proxy-automation) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
 
-#### Custom Volume
+#### Volumes
 
-You can create custom volumes to be mounted within the container. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
+You can define volumes to be mounted within the container as many as needed. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
 
-1. `Please enter the volumes for the docker service, separating multiple volumes with a semicolon:`
+1. `Please enter a volume for the docker service:`
 
 ```bash
-./woongkir:/var/www/html/wp-content/plugins/woongkir;./Divi:/var/www/html/wp-content/themes/Divi
+./woongkir:/var/www/html/wp-content/plugins/woongkir
+```
+
+```bash
+./Divi:/var/www/html/wp-content/themes/Divi
 ```
 
 ## Customization

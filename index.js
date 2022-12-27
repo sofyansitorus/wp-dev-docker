@@ -47,9 +47,15 @@ const generateDockerFile = ({
             })
             .join('\n');
 
-        fs.writeFileSync(`${outputLocation}/Dockerfile`, output);
+        fs.writeFile(`${outputLocation}/Dockerfile`, output, (writeFileError) => {
+            if (writeFileError) {
+                throw writeFileError
+            }
 
-        console.log(`Successfully created Dockerfile file at ${outputLocation}`);
+            console.log(
+                `Successfully created Dockerfile file at ${outputLocation}`
+            );
+        })
     });
 };
 
@@ -97,22 +103,20 @@ const generateDockerCompose = ({
             })
             .reduce((accumulator, currentValue) => {
                 if (
-                    environments &&
+                    environments.length &&
                     -1 !== currentValue.indexOf('WORDPRESS_DB_NAME=wordpress')
                 ) {
                     return accumulator.concat(currentValue, [
-                        ...environments
-                            .split(';')
-                            .map((environment) => `      - ${environment}`),
+                        ...environments.map((environment) => `      - ${environment}`),
                     ]);
                 }
 
                 if (
-                    volumes &&
+                    volumes.length &&
                     -1 !== currentValue.indexOf('var_www_html:/var/www/html')
                 ) {
                     return accumulator.concat(currentValue, [
-                        ...volumes.split(';').map((volume) => `      - ${volume}`),
+                        ...volumes.map((volume) => `      - ${volume}`),
                     ]);
                 }
 
@@ -120,11 +124,15 @@ const generateDockerCompose = ({
             }, [])
             .join('\n');
 
-        fs.writeFileSync(`${outputLocation}/docker-compose.yml`, output);
+        fs.writeFile(`${outputLocation}/docker-compose.yml`, output, (writeFileError) => {
+            if (writeFileError) {
+                throw writeFileError
+            }
 
-        console.log(
-            `Successfully created docker-compose.yml file at ${outputLocation}`
-        );
+            console.log(
+                `Successfully created docker-compose.yml file at ${outputLocation}`
+            );
+        })
     });
 };
 
@@ -154,28 +162,43 @@ const askQuestions = (questions) => {
         const answers = [];
 
         for (let i = 0; i < questions.length; i++) {
-            const { id, text, defaultAnswer, isRequired, isSkip } = questions[i];
+            const { id, text, defaultAnswer, isRequired, isSkip, isRepeat } = questions[i];
 
             if (isSkip && isSkip.call(null, answers)) {
                 continue;
             }
 
-            let question = isRequired ? `(*) ${text}` : text;
+            let question = isRequired ? `(*) ${text}` : `(?) ${text}`
 
             if (defaultAnswer) {
-                question += ` (${defaultAnswer})`;
+                question += ` (Default is ${defaultAnswer})`;
             }
 
-            let answer = await askQuestion(rl, question + ' ');
+            let answer = await askQuestion(rl, `${question} `)
 
             if ('' === answer && defaultAnswer) {
                 answer = defaultAnswer;
             }
 
-            answers.push({
-                id,
-                answer,
-            });
+            if (isRepeat) {
+                const answersRepeat = [];
+
+                while ('' !== answer) {
+                    answersRepeat.push(answer)
+
+                    answer = await askQuestion(rl, `${question} (Leave blank and press ENTER key to continue) `)
+                }
+
+                answers.push({
+                    id,
+                    answer: answersRepeat.filter((value, index, self) => self.indexOf(value) === index),
+                });
+            } else {
+                answers.push({
+                    id,
+                    answer,
+                });
+            }
         }
 
         rl.close();
@@ -227,12 +250,12 @@ askQuestions([
     },
     {
         id: 'shareSSHKey',
-        text: 'Do you want to share the SSH key from the host with the container?',
+        text: 'Do you want to share the SSH key from the host with the container? (yes/no)',
         defaultAnswer: 'yes',
     },
     {
         id: 'generateSSHKey',
-        text: 'Do you want to generate an SSH key in the container?',
+        text: 'Do you want to generate an SSH key in the container? (yes/no)',
         defaultAnswer: 'yes',
         isSkip: (answers) => {
             return 'yes' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
@@ -241,19 +264,23 @@ askQuestions([
     {
         id: 'workDir',
         text: 'Please enter the working directory for the container:',
+        defaultAnswer: '/var/www/html',
     },
     {
         id: 'containerId',
         text: 'Please enter the ID of the container:',
+        defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
         id: 'environments',
-        text: 'Please enter the environments for the docker service, separating multiple environments with a semicolon:',
+        text: 'Please enter an environment value for the docker service:',
+        isRepeat: true,
     },
     {
         id: 'volumes',
-        text: 'Please enter the volumes for the docker service, separating multiple volumes with a semicolon:',
+        text: 'Please enter a volume for the docker service:',
+        isRepeat: true,
     },
     {
         id: 'network',
