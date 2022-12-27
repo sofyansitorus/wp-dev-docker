@@ -163,11 +163,15 @@ const validateEmail = (email) => {
         );
 };
 
-const askQuestion = (rl, question) => {
+const askQuestion = (rl, question, defaultAnswer) => {
     return new Promise((resolve) => {
         rl.question(question, (answer) => {
             resolve(answer);
         });
+
+        if (defaultAnswer) {
+            rl.write(defaultAnswer);
+        }
     });
 };
 
@@ -190,20 +194,15 @@ const askQuestions = (questions) => {
             let repeatCounter = 1;
             let question = isRequired ? `(*) ${text}` : `(?) ${text}`
 
-            let answer = await askQuestion(rl, isRepeat ? `${question} (#${repeatCounter}) ` : `${question} `)
-
-            if ('' === answer && defaultAnswer) {
-                answer = defaultAnswer;
-            }
+            let answer = await askQuestion(rl, isRepeat ? `${question} (#${repeatCounter}) ` : `${question} `, defaultAnswer)
 
             if (isRepeat) {
                 const answersRepeat = [];
 
                 while ('' !== answer) {
-                    repeatCounter++;
                     answersRepeat.push(answer)
 
-                    answer = await askQuestion(rl, `${question} (#${repeatCounter}) `)
+                    answer = await askQuestion(rl, `${question} (#${++repeatCounter}) `, defaultAnswer)
                 }
 
                 answers.push({
@@ -255,29 +254,29 @@ const askQuestions = (questions) => {
 askQuestions([
     {
         id: 'image',
-        text: 'Please enter the name of the docker image [wordpress:latest]:',
+        text: 'Please enter the name of the docker image:',
         defaultAnswer: 'wordpress:latest',
         isRequired: true,
     },
     {
         id: 'containerUser',
-        text: 'Please enter the user for the container [wpdev]:',
+        text: 'Please enter the user for the container:',
         defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
         id: 'sudoer',
-        text: 'Do you want to add the user to sudoer group? [y/N]',
+        text: 'Do you want to add the user to sudoer group [y/n]?',
         defaultAnswer: 'n',
     },
     {
         id: 'shareSSHKey',
-        text: 'Do you want to share the SSH key from the host with the container? [Y/n]',
+        text: 'Do you want to share the SSH key from the host with the container [y/n]?',
         defaultAnswer: 'y',
     },
     {
         id: 'generateSSHKey',
-        text: 'Do you want to generate an SSH key in the container? [Y/n]',
+        text: 'Do you want to generate an SSH key in the container [y/n]?',
         defaultAnswer: 'y',
         isSkip: (answers) => {
             return 'y' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer?.toLowerCase();
@@ -285,23 +284,23 @@ askQuestions([
     },
     {
         id: 'workDir',
-        text: 'Please enter the working directory for the container [/var/www/html]:',
+        text: 'Please enter the working directory for the container:',
         defaultAnswer: '/var/www/html',
     },
     {
         id: 'containerId',
-        text: 'Please enter the ID of the container [wpdev]:',
+        text: 'Please enter the ID of the container:',
         defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
         id: 'environments',
-        text: 'Please enter an environment parameter: (Example: VIRTUAL_HOST=yourdomain.tld)',
+        text: 'Please enter an environment parameter (Example: VIRTUAL_HOST=yourdomain.tld):',
         isRepeat: true,
     },
     {
         id: 'volumes',
-        text: 'Please enter a volume parameter: (Example: /path/in/host:/path/in/container:ro)',
+        text: 'Please enter a volume parameter (Example: /path/in/host:/path/in/container):',
         isRepeat: true,
     },
     {
@@ -319,12 +318,12 @@ askQuestions([
     },
     {
         id: 'constants',
-        text: 'Please enter a WordPress constant: (Example: WP_DEBUG=true)',
+        text: 'Please enter a WordPress constant (Example: WP_DEBUG=true):',
         isRepeat: true,
     },
     {
         id: 'outputLocation',
-        text: 'Please enter the location on the host where the output should be saved [./output]:',
+        text: 'Please enter the location on the host where the output should be saved:',
         isRequired: true,
         defaultAnswer: './output',
     },
