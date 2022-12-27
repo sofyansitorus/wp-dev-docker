@@ -292,6 +292,7 @@ askQuestions([
         id: 'outputLocation',
         text: 'Please enter the location on the host where the output should be saved:',
         isRequired: true,
+        defaultAnswer: './output',
     },
 ])
     .then((answers) => {
