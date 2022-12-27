@@ -51,11 +51,57 @@ This will build and start the containers specified in the `docker-compose.yml` f
 
 ## Advanced Usage
 
-#### Custom Domain
+### Environments
+
+You can define environments variable within the container when needed. When prompted with the following question, you can provide your responses in the format demonstrated in the following example.
+
+1. `Please enter an environment parameter:`
+
+```bash
+VIRTUAL_HOST=yourdomain.tld
+```
+
+```bash
+LETSENCRYPT_HOST=yourdomain.tld
+```
+
+```bash
+LETSENCRYPT_EMAIL=mail@yourdomain.tld
+```
+
+### Volumes
+
+You can define volumes to be mounted within the container when needed. When prompted with the following question, you can provide your responses in the format demonstrated in the following example.
+
+1. `Please enter a volume parameter:`
+
+```bash
+./woongkir:/var/www/html/wp-content/plugins/woongkir
+```
+
+```bash
+./Divi:/var/www/html/wp-content/themes/Divi
+```
+
+### WordPress Constants
+
+You can define WordPress constants as many as needed. When prompted with the following question, you can provide your responses in the format demonstrated in the following example.
+
+1. `Please enter a WordPress constant:`
+
+```bash
+WP_DEBUG=true
+```
+
+```bash
+WP_DEBUG_LOG=true
+```
+
+## Custom Domain
 
 You can use a custom domain if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
 
-1. `Please enter an environment value for the docker service:`
+1. `Please enter an environment parameter:`
 
 ```bash
 VIRTUAL_HOST=yourdomain.tld
@@ -69,11 +115,11 @@ proxy
 
 To use a custom domain, you will need to set up your DNS and install and activate the [NGINX Proxy Automation](https://github.com/evertramos/nginx-proxy-automation) docker. After completing these steps, you can access the WordPress site at http://yourdomain.tld.
 
-#### Custom Domain & SSL
+## Custom Domain & SSL
 
 You can use a custom domain and SSL if you prefer. When prompted with the questions below, you can provide your answer in the format shown in the example below.
 
-1. `Please enter an environment value for the docker service:`
+1. `Please enter an environment parameter:`
 
 ```bash
 VIRTUAL_HOST=yourdomain.tld
@@ -94,34 +140,6 @@ proxy
 ```
 
 To use a custom domain and SSL, you will need to set up your DNS and install and activate the [NGINX Proxy Automation](https://github.com/evertramos/nginx-proxy-automation) docker. After completing these steps, you can access the WordPress site at https://yourdomain.tld.
-
-#### Volumes
-
-You can define volumes to be mounted within the container as many as needed. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
-
-1. `Please enter a volume for the docker service:`
-
-```bash
-./woongkir:/var/www/html/wp-content/plugins/woongkir
-```
-
-```bash
-./Divi:/var/www/html/wp-content/themes/Divi
-```
-
-#### WordPress Constants
-
-You can define WordPress sonstants as many as needed. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
-
-1. `Please enter a WordPress constant: (Example: WP_DEBUG=true):`
-
-```bash
-WP_DEBUG=true
-```
-
-```bash
-WP_DEBUG_LOG=true
-```
 
 ## Customization
 
