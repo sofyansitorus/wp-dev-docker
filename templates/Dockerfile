@@ -41,6 +41,11 @@ RUN useradd -ms /bin/bash {{containerUser}}
 
 RUN usermod -aG www-data {{containerUser}}
 
+RUN usermod -aG sudo {{containerUser}}
+
+# Set sudoer
+RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
 # Switch user
 USER {{containerUser}}
 

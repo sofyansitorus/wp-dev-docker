@@ -8,6 +8,7 @@ const generateDockerFile = ({
     gitUserName,
     image,
     outputLocation,
+    sudoer,
     workDir,
 }) => {
     fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
@@ -33,6 +34,14 @@ const generateDockerFile = ({
 
                 if (-1 !== line.indexOf('WORKDIR')) {
                     return !!workDir;
+                }
+
+                if (-1 !== line.indexOf('RUN usermod -aG sudo {{containerUser}}')) {
+                    return 'y' === sudoer?.toLowerCase();
+                }
+
+                if (-1 !== line.indexOf(`RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers`)) {
+                    return 'y' === sudoer?.toLowerCase();
                 }
 
                 return true;
@@ -257,6 +266,11 @@ askQuestions([
         isRequired: true,
     },
     {
+        id: 'sudoer',
+        text: 'Do you want to add the user to sudoer group? [y/N]',
+        defaultAnswer: 'n',
+    },
+    {
         id: 'shareSSHKey',
         text: 'Do you want to share the SSH key from the host with the container? [Y/n]',
         defaultAnswer: 'y',
@@ -327,6 +341,7 @@ askQuestions([
         const network = answers.find(({ id }) => 'network' === id)?.answer;
         const outputLocation = answers.find(({ id }) => 'outputLocation' === id)?.answer;
         const shareSSHKey = answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
+        const sudoer = answers.find(({ id }) => 'sudoer' === id)?.answer;
         const volumes = answers.find(({ id }) => 'volumes' === id)?.answer;
         const workDir = answers.find(({ id }) => 'workDir' === id)?.answer;
 
@@ -341,6 +356,7 @@ askQuestions([
             gitUserName,
             image,
             outputLocation,
+            sudoer,
             workDir,
         });
 
