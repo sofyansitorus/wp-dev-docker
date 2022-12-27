@@ -1,4 +1,4 @@
-# Dockerfile
+# Image
 FROM {{image}}
 
 # Update the OS
@@ -41,6 +41,7 @@ RUN useradd -ms /bin/bash {{containerUser}}
 
 RUN usermod -aG www-data {{containerUser}}
 
+# Switch user
 USER {{containerUser}}
 
 # Generate SSH Key
@@ -54,30 +55,15 @@ RUN git config --global user.email "{{gitUserEmail}}"
 RUN git config --global pull.ff only
 
 # Install nvm
-ENV NVM_VERSION 0.39.2
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 
-ENV NODE_VERSION 14.20.1
-
-ENV NVM_DIR /home/{{containerUser}}/.nvm
-
-RUN mkdir $NVM_DIR
-
-RUN curl -o- https://raw.githubusercontent.com/creationix/nvm/v$NVM_VERSION/install.sh | bash
-
-ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
-
-ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
-
-RUN echo "source $NVM_DIR/nvm.sh && \
-        nvm install v$NODE_VERSION && \
-        nvm alias default v$NODE_VERSION && \
-        nvm use default" | bash
-
-RUN echo 'export NVM_DIR="$NVM_DIR"'                                         >> "$HOME/.bashrc"
+RUN echo 'export NVM_DIR="$HOME/.nvm"'                                       >> "$HOME/.bashrc"
 
 RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm' >> "$HOME/.bashrc"
 
 RUN echo '[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion" # This loads nvm bash_completion' >> "$HOME/.bashrc"
+
+RUN bash -c 'source $HOME/.nvm/nvm.sh && nvm install node'
 
 # Set working directory
 WORKDIR {{workDir}}
