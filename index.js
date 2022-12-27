@@ -20,7 +20,7 @@ const generateDockerFile = ({
             .split('\n')
             .filter((line) => {
                 if (-1 !== line.indexOf('ssh-keygen')) {
-                    return 'yes' === generateSSHKey;
+                    return 'y' === generateSSHKey?.toLowerCase();
                 }
 
                 if (-1 !== line.indexOf('{{gitUserName}}')) {
@@ -60,6 +60,7 @@ const generateDockerFile = ({
 };
 
 const generateDockerCompose = ({
+    constants,
     containerId,
     containerUser,
     environments,
@@ -67,10 +68,6 @@ const generateDockerCompose = ({
     outputLocation,
     shareSSHKey,
     volumes,
-    wpDebug,
-    wpDebugLog,
-    wpDebugDisplay,
-    scriptDebug,
 }) => {
     fs.readFile('templates/docker-compose.yml', 'utf8', (err, template) => {
         if (err) {
@@ -82,7 +79,7 @@ const generateDockerCompose = ({
             .split('\n')
             .filter((line) => {
                 if (-1 !== line.indexOf('~/.ssh')) {
-                    return 'yes' === shareSSHKey;
+                    return 'y' === shareSSHKey?.toLowerCase();
                 }
 
                 if (-1 !== line.indexOf('name: {{network}}')) {
@@ -96,10 +93,6 @@ const generateDockerCompose = ({
                     .replace(new RegExp('{{containerId}}', 'g'), containerId)
                     .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
                     .replace(new RegExp('{{network}}', 'g'), network)
-                    .replace(new RegExp('{{wpDebug}}', 'g'), wpDebug)
-                    .replace(new RegExp('{{wpDebugLog}}', 'g'), wpDebugLog)
-                    .replace(new RegExp('{{wpDebugDisplay}}', 'g'), wpDebugDisplay)
-                    .replace(new RegExp('{{scriptDebug}}', 'g'), scriptDebug);
             })
             .reduce((accumulator, currentValue) => {
                 if (
@@ -117,6 +110,23 @@ const generateDockerCompose = ({
                 ) {
                     return accumulator.concat(currentValue, [
                         ...volumes.map((volume) => `      - ${volume}`),
+                    ]);
+                }
+
+                if (
+                    constants.length &&
+                    -1 !== currentValue.indexOf('WORDPRESS_CONFIG_EXTRA')
+                ) {
+                    return accumulator.concat(currentValue, [
+                        ...constants.reduce((constantsAccumulator, constant) => {
+                            const parts = constant.split('=', 2);
+
+                            return constantsAccumulator.concat([
+                                `          if ( ! defined( '${parts[0]}' ) ) {`,
+                                `            define( '${parts[0]}', ${parts[1]} );`,
+                                `          }`,
+                            ])
+                        }, []),
                     ]);
                 }
 
@@ -168,13 +178,10 @@ const askQuestions = (questions) => {
                 continue;
             }
 
+            let repeatCounter = 1;
             let question = isRequired ? `(*) ${text}` : `(?) ${text}`
 
-            if (defaultAnswer) {
-                question += ` (Default is ${defaultAnswer})`;
-            }
-
-            let answer = await askQuestion(rl, `${question} `)
+            let answer = await askQuestion(rl, isRepeat ? `${question} (#${repeatCounter}) ` : `${question} `)
 
             if ('' === answer && defaultAnswer) {
                 answer = defaultAnswer;
@@ -184,9 +191,10 @@ const askQuestions = (questions) => {
                 const answersRepeat = [];
 
                 while ('' !== answer) {
+                    repeatCounter++;
                     answersRepeat.push(answer)
 
-                    answer = await askQuestion(rl, `${question} (Leave blank and press ENTER key to continue) `)
+                    answer = await askQuestion(rl, `${question} (#${repeatCounter}) `)
                 }
 
                 answers.push({
@@ -238,48 +246,48 @@ const askQuestions = (questions) => {
 askQuestions([
     {
         id: 'image',
-        text: 'Please enter the name of the docker image:',
+        text: 'Please enter the name of the docker image [wordpress:latest]:',
         defaultAnswer: 'wordpress:latest',
         isRequired: true,
     },
     {
         id: 'containerUser',
-        text: 'Please enter the user for the container:',
+        text: 'Please enter the user for the container [wpdev]:',
         defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
         id: 'shareSSHKey',
-        text: 'Do you want to share the SSH key from the host with the container? (yes/no)',
-        defaultAnswer: 'yes',
+        text: 'Do you want to share the SSH key from the host with the container? [Y/n]',
+        defaultAnswer: 'y',
     },
     {
         id: 'generateSSHKey',
-        text: 'Do you want to generate an SSH key in the container? (yes/no)',
-        defaultAnswer: 'yes',
+        text: 'Do you want to generate an SSH key in the container? [Y/n]',
+        defaultAnswer: 'y',
         isSkip: (answers) => {
-            return 'yes' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
+            return 'y' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer?.toLowerCase();
         },
     },
     {
         id: 'workDir',
-        text: 'Please enter the working directory for the container:',
+        text: 'Please enter the working directory for the container [/var/www/html]:',
         defaultAnswer: '/var/www/html',
     },
     {
         id: 'containerId',
-        text: 'Please enter the ID of the container:',
+        text: 'Please enter the ID of the container [wpdev]:',
         defaultAnswer: 'wpdev',
         isRequired: true,
     },
     {
         id: 'environments',
-        text: 'Please enter an environment value for the docker service:',
+        text: 'Please enter an environment parameter: (Example: VIRTUAL_HOST=yourdomain.tld)',
         isRepeat: true,
     },
     {
         id: 'volumes',
-        text: 'Please enter a volume for the docker service:',
+        text: 'Please enter a volume parameter: (Example: /path/in/host:/path/in/container:ro)',
         isRepeat: true,
     },
     {
@@ -296,67 +304,31 @@ askQuestions([
         validation: validateEmail,
     },
     {
-        id: 'wpDebug',
-        text: 'Do you want to set WP_DEBUG constant to true?',
-        defaultAnswer: 'yes',
-    },
-    {
-        id: 'wpDebugLog',
-        text: 'Do you want to set WP_DEBUG_LOG constant to true?',
-        defaultAnswer: 'yes',
-    },
-    {
-        id: 'wpDebugDisplay',
-        text: 'Do you want to set WP_DEBUG_DISPLAY constant to true?',
-        defaultAnswer: 'yes',
-    },
-    {
-        id: 'scriptDebug',
-        text: 'Do you want to set SCRIPT_DEBUG constant to true?',
-        defaultAnswer: 'yes',
+        id: 'constants',
+        text: 'Please enter a WordPress constant: (Example: WP_DEBUG=true)',
+        isRepeat: true,
     },
     {
         id: 'outputLocation',
-        text: 'Please enter the location on the host where the output should be saved:',
+        text: 'Please enter the location on the host where the output should be saved [./output]:',
         isRequired: true,
         defaultAnswer: './output',
     },
 ])
     .then((answers) => {
-        const image = answers.find(({ id }) => 'image' === id)?.answer;
-        const containerUser = answers.find(
-            ({ id }) => 'containerUser' === id
-        )?.answer;
-        const generateSSHKey = answers.find(
-            ({ id }) => 'generateSSHKey' === id
-        )?.answer;
-        const gitUserName = answers.find(({ id }) => 'gitUserName' === id)?.answer;
-        const gitUserEmail = answers.find(({ id }) => 'gitUserEmail' === id)?.answer;
-        const workDir = answers.find(({ id }) => 'workDir' === id)?.answer;
+        const constants = answers.find(({ id }) => 'constants' === id)?.answer;
         const containerId = answers.find(({ id }) => 'containerId' === id)?.answer;
+        const containerUser = answers.find(({ id }) => 'containerUser' === id)?.answer;
         const environments = answers.find(({ id }) => 'environments' === id)?.answer;
-        const volumes = answers.find(({ id }) => 'volumes' === id)?.answer;
+        const generateSSHKey = answers.find(({ id }) => 'generateSSHKey' === id)?.answer;
+        const gitUserEmail = answers.find(({ id }) => 'gitUserEmail' === id)?.answer;
+        const gitUserName = answers.find(({ id }) => 'gitUserName' === id)?.answer;
+        const image = answers.find(({ id }) => 'image' === id)?.answer;
         const network = answers.find(({ id }) => 'network' === id)?.answer;
+        const outputLocation = answers.find(({ id }) => 'outputLocation' === id)?.answer;
         const shareSSHKey = answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
-        const wpDebug =
-            'yes' === answers.find(({ id }) => 'wpDebug' === id)?.answer
-                ? 'true'
-                : 'false';
-        const wpDebugLog =
-            'yes' === answers.find(({ id }) => 'wpDebugLog' === id)?.answer
-                ? 'true'
-                : 'false';
-        const wpDebugDisplay =
-            'yes' === answers.find(({ id }) => 'wpDebugDisplay' === id)?.answer
-                ? 'true'
-                : 'false';
-        const scriptDebug =
-            'yes' === answers.find(({ id }) => 'scriptDebug' === id)?.answer
-                ? 'true'
-                : 'false';
-        const outputLocation = answers.find(
-            ({ id }) => 'outputLocation' === id
-        )?.answer;
+        const volumes = answers.find(({ id }) => 'volumes' === id)?.answer;
+        const workDir = answers.find(({ id }) => 'workDir' === id)?.answer;
 
         if (!fs.existsSync(outputLocation)) {
             fs.mkdirSync(outputLocation, { recursive: true });
@@ -373,6 +345,7 @@ askQuestions([
         });
 
         generateDockerCompose({
+            constants,
             containerId,
             containerUser,
             environments,
@@ -380,10 +353,6 @@ askQuestions([
             outputLocation,
             shareSSHKey,
             volumes,
-            wpDebug,
-            wpDebugLog,
-            wpDebugDisplay,
-            scriptDebug,
         });
     })
     .catch((error) => {

@@ -109,6 +109,20 @@ You can define volumes to be mounted within the container as many as needed. Whe
 ./Divi:/var/www/html/wp-content/themes/Divi
 ```
 
+#### WordPress Constants
+
+You can define WordPress sonstants as many as needed. When prompted with the following questions, you can provide your responses in the format demonstrated in the following example.
+
+1. `Please enter a WordPress constant: (Example: WP_DEBUG=true):`
+
+```bash
+WP_DEBUG=true
+```
+
+```bash
+WP_DEBUG_LOG=true
+```
+
 ## Customization
 
 You can customize the templates for each service in the `templates` directory. The script will use these templates as a starting point for generating the `docker-compose.yml` and `Dockerfile` file.

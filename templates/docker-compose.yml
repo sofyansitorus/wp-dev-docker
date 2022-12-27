@@ -32,29 +32,14 @@ services:
     depends_on:
       - db_{{containerId}}
     environment:
+      - WORDPRESS_CONFIG_EXTRA= # Do not remove this line, it is needed by the script to generate the WordPress constants
       - WORDPRESS_DB_HOST=db_{{containerId}}
       - WORDPRESS_DB_USER=wordpress
       - WORDPRESS_DB_PASSWORD=wordpress
-      - WORDPRESS_DB_NAME=wordpress
-      - WORDPRESS_CONFIG_EXTRA=
-          if ( ! defined( 'WP_DEBUG' ) ) {
-            define( 'WP_DEBUG', {{wpDebug}} );
-          }
-
-          if ( ! defined( 'WP_DEBUG_LOG' ) ) {
-            define( 'WP_DEBUG_LOG', {{wpDebugLog}} );
-          }
-
-          if ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {
-            define( 'WP_DEBUG_DISPLAY', {{wpDebugDisplay}} );
-          }
-
-          if ( ! defined( 'SCRIPT_DEBUG' ) ) {
-            define( 'SCRIPT_DEBUG', {{scriptDebug}} );
-          }
+      - WORDPRESS_DB_NAME=wordpress # Do not remove this line, it is needed by the script to generate additional environtments
     volumes:
       - ~/.ssh:/home/{{containerUser}}/.ssh:ro
-      - var_www_html:/var/www/html
+      - var_www_html:/var/www/html # Do not remove this line, it is needed by the script to generate additional volumes
 
 volumes:
   var_www_html:
