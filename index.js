@@ -134,6 +134,7 @@ const generateDockerCompose = ({
                                 `          if ( ! defined( '${parts[0]}' ) ) {`,
                                 `            define( '${parts[0]}', ${parts[1]} );`,
                                 `          }`,
+                                '',
                             ])
                         }, []),
                     ]);
