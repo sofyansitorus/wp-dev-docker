@@ -1,5 +1,18 @@
 const fs = require('fs');
 const readline = require('readline');
+const os = require('os');
+
+const userInfo = os.userInfo();
+
+const isRootUser = () => {
+    return 'root' === userInfo.username || 0 === userInfo.uid || 0 === userInfo.gid
+}
+
+const VALID_USERNAME_PATTERN = /^[a-z][a-z0-9]*$/;
+
+const isValidUsername = (username) => {
+    return VALID_USERNAME_PATTERN.test(username)
+}
 
 const generateDockerFile = ({
     containerUser,
@@ -9,7 +22,6 @@ const generateDockerFile = ({
     image,
     outputLocation,
     sudoer,
-    workDir,
 }) => {
     fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
         if (err) {
@@ -32,19 +44,41 @@ const generateDockerFile = ({
                     return !!gitUserEmail;
                 }
 
-                if (-1 !== line.indexOf('WORKDIR')) {
-                    return !!workDir;
+                if (-1 !== line.indexOf('ARG UID={{uid}}')) {
+                    return !isRootUser();
+                }
+
+                if (-1 !== line.indexOf('ARG GID={{gid}}')) {
+                    return !isRootUser();
+                }
+
+                if (-1 !== line.indexOf('RUN addgroup --gid ${GID} {{containerUser}}')) {
+                    return !isRootUser();
+                }
+
+                if (-1 !== line.indexOf('RUN adduser --uid ${UID} --gid ${GID} --shell /bin/bash --home /home/{{containerUser}} {{containerUser}}')) {
+                    return !isRootUser();
                 }
 
                 if (-1 !== line.indexOf('RUN usermod -aG sudo {{containerUser}}')) {
-                    return 'y' === sudoer?.toLowerCase();
+                    return !isRootUser() && 'y' === sudoer?.toLowerCase();
                 }
 
                 if (-1 !== line.indexOf(`RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers`)) {
-                    return 'y' === sudoer?.toLowerCase();
+                    return !isRootUser() && 'y' === sudoer?.toLowerCase();
                 }
 
-                return true;
+                if (-1 !== line.indexOf('RUN chown -R {{containerUser}}:{{containerUser}} /var/www/html')) {
+                    return !isRootUser();
+                }
+
+                if (-1 !== line.indexOf('USER {{containerUser}}')) {
+                    return !isRootUser();
+                }
+
+                const lineNoSpace = line.replace(/\s+/g, '');
+
+                return 0 !== lineNoSpace.indexOf('#') && '' !== lineNoSpace
             })
             .map((line) => {
                 return line
@@ -52,7 +86,8 @@ const generateDockerFile = ({
                     .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
                     .replace(new RegExp('{{gitUserName}}', 'g'), gitUserName)
                     .replace(new RegExp('{{gitUserEmail}}', 'g'), gitUserEmail)
-                    .replace(new RegExp('{{workDir}}', 'g'), workDir);
+                    .replace(new RegExp('{{uid}}', 'g'), userInfo.uid)
+                    .replace(new RegExp('{{gid}}', 'g'), userInfo.gid)
             })
             .join('\n');
 
@@ -87,15 +122,21 @@ const generateDockerCompose = ({
         const output = template
             .split('\n')
             .filter((line) => {
-                if (-1 !== line.indexOf('~/.ssh')) {
-                    return 'y' === shareSSHKey?.toLowerCase();
+                if (-1 !== line.indexOf('~/.ssh:/home/{{containerUser}}/.ssh:ro')) {
+                    return 'y' === shareSSHKey?.toLowerCase() && !isRootUser();
+                }
+
+                if (-1 !== line.indexOf('~/.ssh:/root/.ssh:ro')) {
+                    return 'y' === shareSSHKey?.toLowerCase() && isRootUser();
                 }
 
                 if (-1 !== line.indexOf('name: {{network}}')) {
                     return !!network;
                 }
 
-                return true;
+                const lineNoSpace = line.replace(/\s+/g, '');
+
+                return 0 !== lineNoSpace.indexOf('#') && '' !== lineNoSpace
             })
             .map((line) => {
                 return line
@@ -229,13 +270,18 @@ const askQuestions = (questions) => {
 
             const answer = answers.find((answer) => answer.id === id)?.answer ?? '';
 
-            if (
-                '' !== answer &&
-                validation &&
-                !validation.call(null, answer, answers)
-            ) {
-                errorMessage = `ERROR: The ${id} input is invalid.`;
-                return false;
+            if ('' !== answer && validation) {
+                const isValid = validation.call(null, answer, answers);
+
+                if (false === isValid) {
+                    errorMessage = `ERROR: The ${id} input is invalid.`;
+                    return false;
+                }
+
+                if ('string' === typeof isValid || isValid instanceof String) {
+                    errorMessage = `ERROR: ${isValid}`;
+                    return false;
+                }
             }
 
             if ('' === answer && isRequired) {
@@ -262,13 +308,24 @@ askQuestions([
     {
         id: 'containerUser',
         text: 'Please enter the user for the container:',
-        defaultAnswer: 'wpdev',
+        defaultAnswer: userInfo.username,
         isRequired: true,
+        isSkip: isRootUser,
+        validation: (containerUser) => {
+            if ('root' === containerUser) {
+                return 'User root is not allowed.'
+            }
+
+            if (!isValidUsername(containerUser)) {
+                return 'The user must start with a lowercase letter and can be followed by a mix of numeric and lowercase letters.'
+            }
+        }
     },
     {
         id: 'sudoer',
         text: 'Do you want to add the user to sudoer group [y/n]?',
         defaultAnswer: 'n',
+        isSkip: isRootUser,
     },
     {
         id: 'shareSSHKey',
@@ -282,11 +339,6 @@ askQuestions([
         isSkip: (answers) => {
             return 'y' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer?.toLowerCase();
         },
-    },
-    {
-        id: 'workDir',
-        text: 'Please enter the working directory for the container:',
-        defaultAnswer: '/var/www/html',
     },
     {
         id: 'containerId',
@@ -343,7 +395,6 @@ askQuestions([
         const shareSSHKey = answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
         const sudoer = answers.find(({ id }) => 'sudoer' === id)?.answer;
         const volumes = answers.find(({ id }) => 'volumes' === id)?.answer;
-        const workDir = answers.find(({ id }) => 'workDir' === id)?.answer;
 
         if (!fs.existsSync(outputLocation)) {
             fs.mkdirSync(outputLocation, { recursive: true });
@@ -357,7 +408,6 @@ askQuestions([
             image,
             outputLocation,
             sudoer,
-            workDir,
         });
 
         generateDockerCompose({

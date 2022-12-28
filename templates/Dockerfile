@@ -23,8 +23,6 @@ RUN chmod +x wp-cli.phar
 
 RUN mv wp-cli.phar /usr/local/bin/wp
 
-RUN wp --info
-
 # Install yarn
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
 
@@ -34,30 +32,28 @@ RUN apt-get -qq update
 
 RUN apt-get -y install --no-install-recommends yarn
 
-RUN which yarn
+# Add user
+ARG UID={{uid}}
 
-# Set user
-RUN useradd -ms /bin/bash {{containerUser}}
+ARG GID={{gid}}
 
-RUN usermod -aG www-data {{containerUser}}
+RUN addgroup --gid ${GID} {{containerUser}}
 
-RUN usermod -aG sudo {{containerUser}}
+RUN adduser --uid ${UID} --gid ${GID} --shell /bin/bash --home /home/{{containerUser}} {{containerUser}}
 
 # Set sudoer
+RUN usermod -aG sudo {{containerUser}}
+
 RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# Change ownership of /var/www/html to custom user
+RUN chown -R {{containerUser}}:{{containerUser}} /var/www/html
 
 # Switch user
 USER {{containerUser}}
 
 # Generate SSH Key
-RUN ssh-keygen -t rsa -N "" -f /home/{{containerUser}}/.ssh/id_rsa
-
-# Config git
-RUN git config --global user.name "{{gitUserName}}"
-
-RUN git config --global user.email "{{gitUserEmail}}"
-
-RUN git config --global pull.ff only
+RUN ssh-keygen -t rsa -N "" -f "$HOME/.ssh/id_rsa"
 
 # Install nvm
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
@@ -70,5 +66,9 @@ RUN echo '[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion" # Th
 
 RUN bash -c 'source $HOME/.nvm/nvm.sh && nvm install node'
 
-# Set working directory
-WORKDIR {{workDir}}
+# Config git
+RUN git config --global user.name "{{gitUserName}}"
+
+RUN git config --global user.email "{{gitUserEmail}}"
+
+RUN git config --global pull.ff only

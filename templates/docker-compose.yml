@@ -41,6 +41,7 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     volumes:
       - ~/.ssh:/home/{{containerUser}}/.ssh:ro
+      - ~/.ssh:/root/.ssh:ro
       # Do not remove/change this line, it is needed by the script to generate additional volumes
       - var_www_html:/var/www/html
 
