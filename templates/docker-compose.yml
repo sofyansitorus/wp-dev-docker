@@ -42,6 +42,7 @@ services:
     volumes:
       - ~/.ssh:/home/{{containerUser}}/.ssh:ro
       - ~/.ssh:/root/.ssh:ro
+      - ./wp-config.php:/var/www/html/wp-config.php
       # Do not remove/change this line, it is needed by the script to generate additional volumes
       - var_www_html:/var/www/html
 

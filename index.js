@@ -14,6 +14,18 @@ const isValidUsername = (username) => {
     return VALID_USERNAME_PATTERN.test(username)
 }
 
+const generateWordPressSecretKey = () => {
+    const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_ []{}<>~`+=,.;:/?|';
+
+    let key = '';
+
+    for (let i = 0; i < 64; i++) {
+        key += characters[Math.floor(Math.random() * characters.length)];
+    }
+
+    return key;
+}
+
 const generateDockerFile = ({
     containerUser,
     generateSSHKey,
@@ -192,6 +204,29 @@ const generateDockerCompose = ({
 
             console.log(
                 `Successfully created docker-compose.yml file at ${outputLocation}`
+            );
+        })
+    });
+};
+
+const generateWPConfig = ({
+    outputLocation,
+}) => {
+    fs.readFile('templates/wp-config.php', 'utf8', (err, template) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        const output = template.replace(new RegExp('{{secretKey}}', 'g'), generateWordPressSecretKey);
+
+        fs.writeFile(`${outputLocation}/wp-config.php`, output, (writeFileError) => {
+            if (writeFileError) {
+                throw writeFileError
+            }
+
+            console.log(
+                `Successfully created wp-config.php file at ${outputLocation}`
             );
         })
     });
@@ -419,6 +454,10 @@ askQuestions([
             outputLocation,
             shareSSHKey,
             volumes,
+        });
+
+        generateWPConfig({
+            outputLocation,
         });
     })
     .catch((error) => {
