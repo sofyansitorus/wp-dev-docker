@@ -344,8 +344,8 @@ const askQuestions = (questions) => {
 askQuestions([
     {
         id: 'image',
-        text: 'Please enter the name of the docker image:',
-        defaultAnswer: 'wordpress:latest',
+        text: 'Please enter the WordPress docker image version:',
+        defaultAnswer: 'latest',
         isRequired: true,
     },
     {
@@ -395,12 +395,17 @@ askQuestions([
     },
     {
         id: 'environments',
-        text: 'Please enter an environment parameter (Example: VIRTUAL_HOST=yourdomain.tld):',
+        text: 'Please enter an environment parameter (Example: WORDPRESS_DEBUG=true):',
         isRepeat: true,
     },
     {
         id: 'volumes',
         text: 'Please enter a volume parameter (Example: /path/in/host:/path/in/container):',
+        isRepeat: true,
+    },
+    {
+        id: 'constants',
+        text: 'Please enter a WordPress constant (Example: SCRIPT_DEBUG=true):',
         isRepeat: true,
     },
     {
@@ -415,11 +420,6 @@ askQuestions([
         id: 'gitUserEmail',
         text: 'Please enter your Git user email:',
         validation: validateEmail,
-    },
-    {
-        id: 'constants',
-        text: 'Please enter a WordPress constant (Example: WP_DEBUG=true):',
-        isRepeat: true,
     },
     {
         id: 'outputLocation',

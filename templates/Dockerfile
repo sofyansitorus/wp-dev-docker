@@ -1,5 +1,5 @@
 # Image
-FROM {{image}}
+FROM wordpress:{{image}}
 
 # Update the OS
 RUN apt-get -qq update
