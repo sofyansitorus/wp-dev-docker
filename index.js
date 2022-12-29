@@ -344,7 +344,7 @@ const askQuestions = (questions) => {
 askQuestions([
     {
         id: 'image',
-        text: 'Please enter the WordPress docker image version:',
+        text: 'Please enter the WordPress docker image tag:',
         defaultAnswer: 'latest',
         isRequired: true,
     },
