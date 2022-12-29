@@ -57,35 +57,35 @@ const generateDockerFile = ({
                 }
 
                 if (-1 !== line.indexOf('ARG UID={{uid}}')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 if (-1 !== line.indexOf('ARG GID={{gid}}')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 if (-1 !== line.indexOf('RUN addgroup --gid ${GID} {{containerUser}}')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 if (-1 !== line.indexOf('RUN adduser --uid ${UID} --gid ${GID} --shell /bin/bash --home /home/{{containerUser}} {{containerUser}}')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 if (-1 !== line.indexOf('RUN usermod -aG sudo {{containerUser}}')) {
-                    return !isRootUser() && 'y' === sudoer?.toLowerCase();
+                    return !isRootUser() && 'linux' === os.platform() && 'y' === sudoer?.toLowerCase();
                 }
 
                 if (-1 !== line.indexOf(`RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers`)) {
-                    return !isRootUser() && 'y' === sudoer?.toLowerCase();
+                    return !isRootUser() && 'linux' === os.platform() && 'y' === sudoer?.toLowerCase();
                 }
 
                 if (-1 !== line.indexOf('RUN chown -R {{containerUser}}:{{containerUser}} /var/www/html')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 if (-1 !== line.indexOf('USER {{containerUser}}')) {
-                    return !isRootUser();
+                    return !isRootUser() && 'linux' === os.platform();
                 }
 
                 const lineNoSpace = line.replace(/\s+/g, '');
@@ -135,11 +135,19 @@ const generateDockerCompose = ({
             .split('\n')
             .filter((line) => {
                 if (-1 !== line.indexOf('~/.ssh:/home/{{containerUser}}/.ssh:ro')) {
-                    return 'y' === shareSSHKey?.toLowerCase() && !isRootUser();
+                    if ('y' !== shareSSHKey?.toLowerCase()) {
+                        return false;
+                    }
+
+                    return 'linux' === os.platform() && !isRootUser();
                 }
 
                 if (-1 !== line.indexOf('~/.ssh:/root/.ssh:ro')) {
-                    return 'y' === shareSSHKey?.toLowerCase() && isRootUser();
+                    if ('y' !== shareSSHKey?.toLowerCase()) {
+                        return false;
+                    }
+
+                    return 'linux' === os.platform() ? isRootUser() : true;
                 }
 
                 if (-1 !== line.indexOf('name: {{network}}')) {
@@ -345,7 +353,9 @@ askQuestions([
         text: 'Please enter the user for the container:',
         defaultAnswer: userInfo.username,
         isRequired: true,
-        isSkip: isRootUser,
+        isSkip: () => {
+            return isRootUser() || 'linux' !== os.platform();
+        },
         validation: (containerUser) => {
             if ('root' === containerUser) {
                 return 'User root is not allowed.'
@@ -360,7 +370,9 @@ askQuestions([
         id: 'sudoer',
         text: 'Do you want to add the user to sudoer group [y/n]?',
         defaultAnswer: 'n',
-        isSkip: isRootUser,
+        isSkip: () => {
+            return isRootUser() || 'linux' !== os.platform();
+        },
     },
     {
         id: 'shareSSHKey',
