@@ -34,8 +34,6 @@ services:
     restart: always
     depends_on:
       - db_{{containerId}}
-    ports:
-      - 80:80
     environment:
       # Do not remove/change this line, it is needed by the script to generate the WordPress constants
       - WORDPRESS_CONFIG_EXTRA=
