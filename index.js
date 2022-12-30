@@ -8,10 +8,73 @@ const isRootUser = () => {
     return 'root' === userInfo.username || 0 === userInfo.uid || 0 === userInfo.gid
 }
 
-const VALID_USERNAME_PATTERN = /^[a-z][a-z0-9]*$/;
+const phpVersions = [
+    '7.0',
+    '7.1',
+    '7.2',
+    '7.3',
+    '7.4',
+    '8.0',
+    '8.1',
+    '8.2',
+];
 
-const isValidUsername = (username) => {
-    return VALID_USERNAME_PATTERN.test(username)
+const compareSemver = (aVersion, bVersion) => {
+    // Split the version strings into arrays of integers
+    const aParts = aVersion.split('.').map(x => parseInt(x, 10));
+    const bParts = bVersion.split('.').map(x => parseInt(x, 10));
+
+    if (aParts.length < bParts.length) {
+        const diff = bParts.length - aParts.length;
+
+        for (let index = 0; index < diff; index++) {
+            aParts.push(0);
+        }
+    }
+
+    if (bParts.length < aParts.length) {
+        const diff = aParts.length - bParts.length;
+
+        for (let index = 0; index < diff; index++) {
+            bParts.push(0);
+        }
+    }
+
+    // Compare the major versions
+    if (aParts[0] !== bParts[0]) {
+        return aParts[0] > bParts[0] ? 1 : -1;
+    }
+
+    // If the major versions are equal, compare the minor versions
+    if (aParts[1] !== bParts[1]) {
+        return aParts[1] > bParts[1] ? 1 : -1;
+    }
+
+    // If the major and minor versions are equal, compare the patch versions
+    if (aParts[2] !== bParts[2]) {
+        return aParts[2] > bParts[2] ? 1 : -1;
+    }
+
+    // If all three versions are equal, return 0
+    return 0;
+}
+
+const validateSemver = (semver) => {
+    // Use a regular expression to check if the string is in the correct format
+    const semverRegex = /^\d+\.\d+(\.\d+)?$/;
+    if (!semverRegex.test(semver)) {
+        return false;
+    }
+
+    // Split the string into an array of integers
+    const parts = semver.split('.').map(part => parseInt(part, 10));
+
+    // Check if each part is a non-negative integer
+    if (parts.some(part => isNaN(part) || part < 0)) {
+        return false;
+    }
+
+    return true;
 }
 
 const generateWordPressSecretKey = () => {
@@ -27,79 +90,43 @@ const generateWordPressSecretKey = () => {
 }
 
 const generateDockerFile = ({
-    containerUser,
     generateSSHKey,
     gitUserEmail,
     gitUserName,
-    image,
     outputLocation,
-    sudoer,
+    phpVersion,
+    wpVersion,
 }) => {
-    fs.readFile('templates/Dockerfile', 'utf8', (err, template) => {
+    fs.readFile(`templates/php${phpVersion}/Dockerfile`, 'utf8', (err, template) => {
         if (err) {
             console.error(err);
             return;
         }
 
+        const wpVersionNormalized = 'latest' === wpVersion ? wpVersion : `wordpress-${wpVersion}`
+
         const output = template
             .split('\n')
             .filter((line) => {
-                if (-1 !== line.indexOf('ssh-keygen')) {
+                if (-1 !== line.indexOf('RUN ssh-keygen -t rsa -N "" -f "$HOME/.ssh/id_rsa"')) {
                     return 'y' === generateSSHKey?.toLowerCase();
                 }
 
-                if (-1 !== line.indexOf('{{gitUserName}}')) {
+                if (-1 !== line.indexOf('{gitUserName}')) {
                     return !!gitUserName;
                 }
 
-                if (-1 !== line.indexOf('{{gitUserEmail}}')) {
-                    return !!gitUserEmail;
+                if (-1 !== line.indexOf('{gitUserEmail}')) {
+                    return !!gitUserName;
                 }
 
-                if (-1 !== line.indexOf('ARG UID={{uid}}')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                if (-1 !== line.indexOf('ARG GID={{gid}}')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                if (-1 !== line.indexOf('RUN addgroup --gid ${GID} {{containerUser}}')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                if (-1 !== line.indexOf('RUN adduser --uid ${UID} --gid ${GID} --shell /bin/bash --home /home/{{containerUser}} {{containerUser}}')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                if (-1 !== line.indexOf('RUN usermod -aG sudo {{containerUser}}')) {
-                    return !isRootUser() && 'linux' === os.platform() && 'y' === sudoer?.toLowerCase();
-                }
-
-                if (-1 !== line.indexOf(`RUN echo '{{containerUser}} ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers`)) {
-                    return !isRootUser() && 'linux' === os.platform() && 'y' === sudoer?.toLowerCase();
-                }
-
-                if (-1 !== line.indexOf('RUN chown -R {{containerUser}}:{{containerUser}} /var/www/html')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                if (-1 !== line.indexOf('USER {{containerUser}}')) {
-                    return !isRootUser() && 'linux' === os.platform();
-                }
-
-                const lineNoSpace = line.replace(/\s+/g, '');
-
-                return 0 !== lineNoSpace.indexOf('#') && '' !== lineNoSpace
+                return true;
             })
             .map((line) => {
                 return line
-                    .replace(new RegExp('{{image}}', 'g'), image)
-                    .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
-                    .replace(new RegExp('{{gitUserName}}', 'g'), gitUserName)
-                    .replace(new RegExp('{{gitUserEmail}}', 'g'), gitUserEmail)
-                    .replace(new RegExp('{{uid}}', 'g'), userInfo.uid)
-                    .replace(new RegExp('{{gid}}', 'g'), userInfo.gid)
+                    .replace(new RegExp('{wpVersion}', 'g'), wpVersionNormalized)
+                    .replace(new RegExp('{gitUserName}', 'g'), gitUserName)
+                    .replace(new RegExp('{gitUserEmail}', 'g'), gitUserEmail)
             })
             .join('\n');
 
@@ -118,7 +145,6 @@ const generateDockerFile = ({
 const generateDockerCompose = ({
     constants,
     containerId,
-    containerUser,
     environments,
     network,
     outputLocation,
@@ -134,20 +160,8 @@ const generateDockerCompose = ({
         const output = template
             .split('\n')
             .filter((line) => {
-                if (-1 !== line.indexOf('~/.ssh:/home/{{containerUser}}/.ssh:ro')) {
-                    if ('y' !== shareSSHKey?.toLowerCase()) {
-                        return false;
-                    }
-
-                    return 'linux' === os.platform() && !isRootUser();
-                }
-
                 if (-1 !== line.indexOf('~/.ssh:/root/.ssh:ro')) {
-                    if ('y' !== shareSSHKey?.toLowerCase()) {
-                        return false;
-                    }
-
-                    return 'linux' === os.platform() ? isRootUser() : true;
+                    return 'y' === shareSSHKey?.toLowerCase()
                 }
 
                 if (-1 !== line.indexOf('name: {{network}}')) {
@@ -161,7 +175,6 @@ const generateDockerCompose = ({
             .map((line) => {
                 return line
                     .replace(new RegExp('{{containerId}}', 'g'), containerId)
-                    .replace(new RegExp('{{containerUser}}', 'g'), containerUser)
                     .replace(new RegExp('{{network}}', 'g'), network)
             })
             .reduce((accumulator, currentValue) => {
@@ -217,6 +230,28 @@ const generateDockerCompose = ({
     });
 };
 
+const generateEntryPointScript = ({
+    outputLocation,
+    phpVersion,
+}) => {
+    fs.readFile(`templates/php${phpVersion}/docker-entrypoint.sh`, 'utf8', (err, template) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        fs.writeFile(`${outputLocation}/docker-entrypoint.sh`, template, (writeFileError) => {
+            if (writeFileError) {
+                throw writeFileError
+            }
+
+            console.log(
+                `Successfully created docker-entrypoint.sh file at ${outputLocation}`
+            );
+        })
+    });
+};
+
 const generateWPConfig = ({
     outputLocation,
 }) => {
@@ -235,6 +270,27 @@ const generateWPConfig = ({
 
             console.log(
                 `Successfully created wp-config.php file at ${outputLocation}`
+            );
+        })
+    });
+};
+
+const generateHtaccess = ({
+    outputLocation,
+}) => {
+    fs.readFile('templates/.htaccess', 'utf8', (err, template) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        fs.writeFile(`${outputLocation}/.htaccess`, template, (writeFileError) => {
+            if (writeFileError) {
+                throw writeFileError
+            }
+
+            console.log(
+                `Successfully created .htaccess file at ${outputLocation}`
             );
         })
     });
@@ -343,36 +399,36 @@ const askQuestions = (questions) => {
 
 askQuestions([
     {
-        id: 'image',
-        text: 'Please enter the WordPress docker image tag:',
-        defaultAnswer: 'latest',
+        id: 'phpVersion',
+        text: 'Please enter the PHP version:',
+        defaultAnswer: '7.4',
         isRequired: true,
-    },
-    {
-        id: 'containerUser',
-        text: 'Please enter the user for the container:',
-        defaultAnswer: userInfo.username,
-        isRequired: true,
-        isSkip: () => {
-            return isRootUser() || 'linux' !== os.platform();
-        },
-        validation: (containerUser) => {
-            if ('root' === containerUser) {
-                return 'User root is not allowed.'
+        validation: (phpVersion) => {
+            if (-1 === phpVersions.indexOf(phpVersion)) {
+                return `Allowed PHP versions is ${phpVersions.join(', ')}`;
             }
 
-            if (!isValidUsername(containerUser)) {
-                return 'The user must start with a lowercase letter and can be followed by a mix of numeric and lowercase letters.'
-            }
+            return true;
         }
     },
     {
-        id: 'sudoer',
-        text: 'Do you want to add the user to sudoer group [y/n]?',
-        defaultAnswer: 'n',
-        isSkip: () => {
-            return isRootUser() || 'linux' !== os.platform();
-        },
+        id: 'wpVersion',
+        text: 'Please enter the WordPress version:',
+        defaultAnswer: 'latest',
+        isRequired: true,
+        validation: (wpVersion) => {
+            if ('latest' === wpVersion) {
+                return true;
+            }
+
+            const isValidVersion = validateSemver(wpVersion);
+
+            if (isValidVersion && - 1 === compareSemver(wpVersion, '5.0')) {
+                return 'Allowed WordPress version is 5.0 or higher';
+            }
+
+            return isValidVersion;
+        }
     },
     {
         id: 'shareSSHKey',
@@ -429,18 +485,17 @@ askQuestions([
     },
 ])
     .then((answers) => {
+        const phpVersion = answers.find(({ id }) => 'phpVersion' === id)?.answer;
+        const wpVersion = answers.find(({ id }) => 'wpVersion' === id)?.answer;
         const constants = answers.find(({ id }) => 'constants' === id)?.answer;
         const containerId = answers.find(({ id }) => 'containerId' === id)?.answer;
-        const containerUser = answers.find(({ id }) => 'containerUser' === id)?.answer;
         const environments = answers.find(({ id }) => 'environments' === id)?.answer;
         const generateSSHKey = answers.find(({ id }) => 'generateSSHKey' === id)?.answer;
         const gitUserEmail = answers.find(({ id }) => 'gitUserEmail' === id)?.answer;
         const gitUserName = answers.find(({ id }) => 'gitUserName' === id)?.answer;
-        const image = answers.find(({ id }) => 'image' === id)?.answer;
         const network = answers.find(({ id }) => 'network' === id)?.answer;
         const outputLocation = answers.find(({ id }) => 'outputLocation' === id)?.answer;
         const shareSSHKey = answers.find(({ id }) => 'shareSSHKey' === id)?.answer;
-        const sudoer = answers.find(({ id }) => 'sudoer' === id)?.answer;
         const volumes = answers.find(({ id }) => 'volumes' === id)?.answer;
 
         if (!fs.existsSync(outputLocation)) {
@@ -448,19 +503,17 @@ askQuestions([
         }
 
         generateDockerFile({
-            containerUser,
             generateSSHKey,
             gitUserEmail,
             gitUserName,
-            image,
             outputLocation,
-            sudoer,
+            phpVersion,
+            wpVersion,
         });
 
         generateDockerCompose({
             constants,
             containerId,
-            containerUser,
             environments,
             network,
             outputLocation,
@@ -468,7 +521,16 @@ askQuestions([
             volumes,
         });
 
+        generateEntryPointScript({
+            outputLocation,
+            phpVersion,
+        });
+
         generateWPConfig({
+            outputLocation,
+        });
+
+        generateHtaccess({
             outputLocation,
         });
     })

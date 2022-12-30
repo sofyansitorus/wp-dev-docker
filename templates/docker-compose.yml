@@ -1,6 +1,7 @@
 version: '3'
 services:
   db_{{containerId}}_test:
+    container_name: db_{{containerId}}_test
     image: mariadb:10.6.4-focal
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
@@ -13,6 +14,7 @@ services:
       - var_lib_mysql_test:/var/lib/mysql
 
   db_{{containerId}}:
+    container_name: db_{{containerId}}
     image: mariadb:10.6.4-focal
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
@@ -24,7 +26,8 @@ services:
     volumes:
       - var_lib_mysql:/var/lib/mysql
 
-  wp_{{containerId}}:
+  web_{{containerId}}:
+    container_name: web_{{containerId}}
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,7 +45,6 @@ services:
       # Do not remove/change this line, it is needed by the script to generate additional environtments
       - WORDPRESS_DB_NAME=wordpress
     volumes:
-      - ~/.ssh:/home/{{containerUser}}/.ssh:ro
       - ~/.ssh:/root/.ssh:ro
       - ./wp-config.php:/var/www/html/wp-config.php
       # Do not remove/change this line, it is needed by the script to generate additional volumes
@@ -50,14 +52,8 @@ services:
 
 volumes:
   var_www_html:
-    labels:
-      ch.example.label: "var_www_html"
   var_lib_mysql:
-    labels:
-      ch.example.label: "var_lib_mysql"
   var_lib_mysql_test:
-    labels:
-      ch.example.label: "var_lib_mysql_test"
 
 networks:
   default:
