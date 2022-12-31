@@ -1,12 +1,5 @@
 const fs = require('fs');
 const readline = require('readline');
-const os = require('os');
-
-const userInfo = os.userInfo();
-
-const isRootUser = () => {
-    return 'root' === userInfo.username || 0 === userInfo.uid || 0 === userInfo.gid
-}
 
 const phpVersions = [
     '7.0',
@@ -76,6 +69,14 @@ const validateSemver = (semver) => {
 
     return true;
 }
+
+const validateEmail = (email) => {
+    return String(email)
+        .toLowerCase()
+        .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        );
+};
 
 const generateWordPressSecretKey = () => {
     const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_ []{}<>~`+=,.;:/?|';
@@ -296,14 +297,6 @@ const generateHtaccess = ({
     });
 };
 
-const validateEmail = (email) => {
-    return String(email)
-        .toLowerCase()
-        .match(
-            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-        );
-};
-
 const askQuestion = (rl, question, defaultAnswer) => {
     return new Promise((resolve) => {
         rl.question(question, (answer) => {
@@ -405,7 +398,7 @@ askQuestions([
         isRequired: true,
         validation: (phpVersion) => {
             if (-1 === phpVersions.indexOf(phpVersion)) {
-                return `Allowed PHP versions is ${phpVersions.join(', ')}`;
+                return `The allowed PHP versions are ${phpVersions.join(', ')}.`;
             }
 
             return true;
@@ -421,13 +414,15 @@ askQuestions([
                 return true;
             }
 
-            const isValidVersion = validateSemver(wpVersion);
+            const wpVersionMin = '5.0';
+            const wpVersionMax = '6.1.1';
+            const isValid = validateSemver(wpVersion);
 
-            if (isValidVersion && - 1 === compareSemver(wpVersion, '5.0')) {
-                return 'Allowed WordPress version is 5.0 or higher';
+            if (isValid && (- 1 === compareSemver(wpVersion, wpVersionMin) || 1 === compareSemver(wpVersion, wpVersionMax))) {
+                return `The allowed WordPress version is from ${wpVersionMin} up to ${wpVersionMax}.`;
             }
 
-            return isValidVersion;
+            return isValid;
         }
     },
     {
