@@ -44,6 +44,7 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     volumes:
       - ~/.ssh:/root/.ssh:ro
+      - ./.htaccess:/var/www/html/.htaccess
       - ./wp-config.php:/var/www/html/wp-config.php
       # Do not remove/change this line, it is needed by the script to generate additional volumes
       - var_www_html:/var/www/html

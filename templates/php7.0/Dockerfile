@@ -179,9 +179,6 @@ RUN git config --global pull.ff only
 
 VOLUME /var/www/html
 
-# Change ownership for wp-config.php file
-COPY --chown=www-data:www-data wp-config.php /usr/src/wordpress/
-
 # Set entry point script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
