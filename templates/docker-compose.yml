@@ -1,7 +1,7 @@
 version: '3'
 services:
-  db_{{containerId}}_test:
-    container_name: db_{{containerId}}_test
+  db_{containerId}_test:
+    container_name: db_{containerId}_test
     image: mariadb:10.6.4-focal
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
@@ -13,8 +13,8 @@ services:
     volumes:
       - var_lib_mysql_test:/var/lib/mysql
 
-  db_{{containerId}}:
-    container_name: db_{{containerId}}
+  db_{containerId}:
+    container_name: db_{containerId}
     image: mariadb:10.6.4-focal
     command: '--default-authentication-plugin=mysql_native_password'
     restart: always
@@ -26,28 +26,27 @@ services:
     volumes:
       - var_lib_mysql:/var/lib/mysql
 
-  web_{{containerId}}:
-    container_name: web_{{containerId}}
+  web_{containerId}:
+    container_name: web_{containerId}
     build:
       context: .
       dockerfile: Dockerfile
     restart: always
     depends_on:
-      - db_{{containerId}}
+      - db_{containerId}
     environment:
-      # Do not remove/change this line, it is needed by the script to generate the WordPress constants
-      - WORDPRESS_CONFIG_EXTRA=
-      - WORDPRESS_DB_HOST=db_{{containerId}}
+      - WORDPRESS_DB_HOST=db_{containerId}
       - WORDPRESS_DB_USER=wordpress
       - WORDPRESS_DB_PASSWORD=wordpress
-      # Do not remove/change this line, it is needed by the script to generate additional environtments
       - WORDPRESS_DB_NAME=wordpress
+      - {environments}
+      - {wordpressConfigExtra}
     volumes:
       - ~/.ssh:/root/.ssh:ro
       - ./.htaccess:/var/www/html/.htaccess
       - ./wp-config.php:/var/www/html/wp-config.php
-      # Do not remove/change this line, it is needed by the script to generate additional volumes
       - var_www_html:/var/www/html
+      - {volumes}
 
 volumes:
   var_www_html:
@@ -56,4 +55,4 @@ volumes:
 
 networks:
   default:
-    name: {{network}}
+    name: {network}

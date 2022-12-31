@@ -165,43 +165,52 @@ const generateDockerCompose = ({
                     return 'y' === shareSSHKey?.toLowerCase()
                 }
 
-                if (-1 !== line.indexOf('name: {{network}}')) {
+                if (-1 !== line.indexOf('name: {network}')) {
                     return !!network;
                 }
 
                 const lineNoSpace = line.replace(/\s+/g, '');
 
-                return 0 !== lineNoSpace.indexOf('#') && '' !== lineNoSpace
+                return true;
             })
             .map((line) => {
                 return line
-                    .replace(new RegExp('{{containerId}}', 'g'), containerId)
-                    .replace(new RegExp('{{network}}', 'g'), network)
+                    .replace(new RegExp('{containerId}', 'g'), containerId)
+                    .replace(new RegExp('{network}', 'g'), network)
             })
             .reduce((accumulator, currentValue) => {
                 if (
-                    environments.length &&
-                    -1 !== currentValue.indexOf('WORDPRESS_DB_NAME=wordpress')
+                    -1 !== currentValue.indexOf('- {environments}')
                 ) {
-                    return accumulator.concat(currentValue, [
+                    if (!environments.length) {
+                        return accumulator
+                    }
+
+                    return accumulator.concat([
                         ...environments.map((environment) => `      - ${environment}`),
                     ]);
                 }
 
                 if (
-                    volumes.length &&
-                    -1 !== currentValue.indexOf('var_www_html:/var/www/html')
+                    -1 !== currentValue.indexOf('- {volumes}')
                 ) {
-                    return accumulator.concat(currentValue, [
+                    if (!volumes.length) {
+                        return accumulator
+                    }
+
+                    return accumulator.concat([
                         ...volumes.map((volume) => `      - ${volume}`),
                     ]);
                 }
 
                 if (
-                    constants.length &&
-                    -1 !== currentValue.indexOf('WORDPRESS_CONFIG_EXTRA')
+                    -1 !== currentValue.indexOf('- {wordpressConfigExtra}')
                 ) {
-                    return accumulator.concat(currentValue, [
+                    if (!constants.length) {
+                        return accumulator
+                    }
+
+                    return accumulator.concat('      - WORDPRESS_CONFIG_EXTRA=', [
                         ...constants.reduce((constantsAccumulator, constant) => {
                             const parts = constant.split('=', 2);
 
@@ -262,7 +271,7 @@ const generateWPConfig = ({
             return;
         }
 
-        const output = template.replace(new RegExp('{{secretKey}}', 'g'), generateWordPressSecretKey);
+        const output = template.replace(new RegExp('{secretKey}', 'g'), generateWordPressSecretKey);
 
         fs.writeFile(`${outputLocation}/wp-config.php`, output, (writeFileError) => {
             if (writeFileError) {
