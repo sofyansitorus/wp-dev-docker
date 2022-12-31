@@ -33,9 +33,9 @@ RUN set -ex; \
 	; \
 	\
 	docker-php-ext-configure gd \
-		--with-freetype \
-		--with-jpeg \
-		--with-webp \
+		--with-freetype-dir \
+		--with-jpeg-dir \
+		--with-webp-dir \
 	; \
 	docker-php-ext-install -j "$(nproc)" \
 		bcmath \
