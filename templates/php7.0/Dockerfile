@@ -13,6 +13,8 @@ RUN set -eux; \
 		python \
 		python3 \
 		openssh-client \
+		apt-transport-https \
+		ca-certificates \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
