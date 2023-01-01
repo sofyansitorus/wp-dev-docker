@@ -2,6 +2,7 @@ const fs = require('fs');
 const readline = require('readline');
 
 const phpVersions = [
+    '5.6',
     '7.0',
     '7.1',
     '7.2',
@@ -244,7 +245,9 @@ const generateEntryPointScript = ({
     outputLocation,
     phpVersion,
 }) => {
-    fs.readFile(`templates/php${phpVersion}/docker-entrypoint.sh`, 'utf8', (err, template) => {
+    const templateFile = fs.existsSync(`templates/php${phpVersion}/docker-entrypoint.sh`) ? `templates/php${phpVersion}/docker-entrypoint.sh` : `templates/docker-entrypoint.sh`;
+
+    fs.readFile(templateFile, 'utf8', (err, template) => {
         if (err) {
             console.error(err);
             return;
@@ -406,6 +409,10 @@ askQuestions([
         defaultAnswer: '7.4',
         isRequired: true,
         validation: (phpVersion) => {
+            if (!validateSemver(phpVersion)) {
+                return false;
+            }
+
             if (-1 === phpVersions.indexOf(phpVersion)) {
                 return `The allowed PHP versions are ${phpVersions.join(', ')}.`;
             }
