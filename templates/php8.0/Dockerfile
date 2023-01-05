@@ -137,6 +137,7 @@ RUN set -eux; \
 		dir="$(basename "${dir%/}")"; \
 		mkdir "wp-content/$dir"; \
 	done; \
+	mkdir -p wp-content/uploads; \
 	chown -R www-data:www-data wp-content; \
 	chmod -R 777 wp-content
 
