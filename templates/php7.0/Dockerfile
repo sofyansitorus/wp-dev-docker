@@ -168,7 +168,7 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | b
 RUN echo 'export NVM_DIR="$HOME/.nvm"'                                       >> "$HOME/.bashrc"
 RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm' >> "$HOME/.bashrc"
 RUN echo '[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion" # This loads nvm bash_completion' >> "$HOME/.bashrc"
-RUN bash -c 'source $HOME/.nvm/nvm.sh && nvm install node'
+RUN bash -c 'source $HOME/.nvm/nvm.sh && nvm install {nodeVersion}'
 
 # Generate SSH Key
 RUN ssh-keygen -t rsa -N "" -f "$HOME/.ssh/id_rsa"

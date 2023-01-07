@@ -11,7 +11,7 @@ services:
       - MYSQL_USER=wordpress
       - MYSQL_PASSWORD=wordpress
     volumes:
-      - var_lib_mysql_test:/var/lib/mysql
+      - data_{containerId}_test:/var/lib/mysql
 
   db_{containerId}:
     container_name: db_{containerId}
@@ -24,7 +24,7 @@ services:
       - MYSQL_USER=wordpress
       - MYSQL_PASSWORD=wordpress
     volumes:
-      - var_lib_mysql:/var/lib/mysql
+      - data_{containerId}:/var/lib/mysql
 
   web_{containerId}:
     container_name: web_{containerId}
@@ -46,13 +46,13 @@ services:
       - ~/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub:ro
       - ./.htaccess:/var/www/html/.htaccess
       - ./wp-config.php:/var/www/html/wp-config.php
-      - var_www_html:/var/www/html
+      - docroot_{containerId}:/var/www/html
       - {volumes}
 
 volumes:
-  var_www_html:
-  var_lib_mysql:
-  var_lib_mysql_test:
+  docroot_{containerId}:
+  data_{containerId}:
+  data_{containerId}_test:
 
 networks:
   default:
