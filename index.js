@@ -627,7 +627,7 @@ askQuestions([
             const phpVersionMax = wpVersions.find(v => v.wp === `${wpVersionMajor}.${wpVersionMinor}`)?.php?.max ?? '0.0';
 
             if (- 1 === compareSemver(phpVersion, phpVersionMin) || 1 === compareSemver(phpVersion, phpVersionMax)) {
-                return `PHP version ${wpVersion} is not complatible with WordPress version ${wpVersion}. The allowed PHP versions are ${phpVersionMin} to ${phpVersionMax}.`;
+                return `PHP version ${phpVersion} is not complatible with WordPress version ${wpVersion}. The allowed PHP versions are ${phpVersionMin} to ${phpVersionMax}.`;
             }
 
             return true;
