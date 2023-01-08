@@ -506,7 +506,6 @@ const askQuestions = (questions) => {
             output: process.stdout,
         });
 
-        let errorMessage;
         const answers = [];
 
         for (let i = 0; i < questions.length; i++) {
@@ -533,23 +532,20 @@ const askQuestions = (questions) => {
                 answer = answersRepeat.filter((value, index, self) => self.indexOf(value) === index);
             }
 
-            errorMessage = getErrorMessage(questions[i], answer, answers);
+            const errorMessage = getErrorMessage(questions[i], answer, answers);
 
             if (errorMessage) {
-                break;
+                console.log(errorMessage);
+                i--;
+            } else {
+                answers.push({
+                    id,
+                    answer,
+                });
             }
-
-            answers.push({
-                id,
-                answer,
-            });
         }
 
         rl.close();
-
-        if (errorMessage) {
-            reject(errorMessage);
-        }
 
         resolve(answers);
     });
