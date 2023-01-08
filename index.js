@@ -721,6 +721,13 @@ askQuestions([
         id: 'shareSSHKey',
         text: 'Do you want to share the SSH key from the host with the container [y/n]?',
         defaultAnswer: 'y',
+        validation: (shareSSHKey) => {
+            if (-1 === ['y', 'n'].indexOf(shareSSHKey)) {
+                return 'Please enter "y" or "n"';
+            }
+
+            return true;
+        }
     },
     {
         id: 'generateSSHKey',
@@ -729,6 +736,13 @@ askQuestions([
         isSkip: (answers) => {
             return 'y' === answers.find(({ id }) => 'shareSSHKey' === id)?.answer?.toLowerCase();
         },
+        validation: (generateSSHKey) => {
+            if (-1 === ['y', 'n'].indexOf(generateSSHKey)) {
+                return 'Please enter "y" or "n"';
+            }
+
+            return true;
+        }
     },
     {
         id: 'gitUserName',
